@@ -16,16 +16,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type State int
-
-const (
-	Pending State = iota
-	Scheduled
-	Running
-	Completed
-	Failed
-)
-
 type Task struct {
 	ID            uuid.UUID
 	ContainerID   string
@@ -49,24 +39,57 @@ type TaskEvent struct {
 	Task      Task
 }
 
+// Config struct to hold Docker container config
 type Config struct {
-	Name          string
-	AttachStdin   bool
-	AttachStdout  bool
-	AttachStderr  bool
-	ExposedPorts  nat.PortSet
-	Cmd           []string
-	Image         string
-	Cpu           float64
-	Memory        int64
-	Disk          int64
-	Env           []string
+	// Name of the task, also used as the container name
+	Name string
+	// AttachStdin boolean which determines if stdin should be attached
+	AttachStdin bool
+	// AttachStdout boolean which determines if stdout should be attached
+	AttachStdout bool
+	// AttachStderr boolean which determines if stderr should be attached
+	AttachStderr bool
+	// ExposedPorts list of ports exposed
+	ExposedPorts nat.PortSet
+	// Cmd to be run inside container (optional)
+	Cmd []string
+	// Image used to run the container
+	Image string
+	// Cpu
+	Cpu float64
+	// Memory in MiB
+	Memory int64
+	// Disk in GiB
+	Disk int64
+	// Env variables
+	Env []string
+	// RestartPolicy for the container ["", "always", "unless-stopped", "on-failure"]
 	RestartPolicy string
+}
+
+func NewConfig(t *Task) *Config {
+	return &Config{
+		Name:          t.Name,
+		ExposedPorts:  t.ExposedPorts,
+		Image:         t.Image,
+		Cpu:           t.CPU,
+		Memory:        t.Memory,
+		Disk:          t.Disk,
+		RestartPolicy: t.RestartPolicy,
+	}
 }
 
 type Docker struct {
 	Client *client.Client
 	Config Config
+}
+
+func NewDocker(c *Config) *Docker {
+	dc, _ := client.NewClientWithOpts(client.FromEnv)
+	return &Docker{
+		Client: dc,
+		Config: *c,
+	}
 }
 
 type DockerResult struct {
